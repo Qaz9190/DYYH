@@ -233,7 +233,7 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                                step:0.5
                                                                                defaultValue:-12.5
                                                                                decimals:1
-                                                                               unit:" pt"
+                                                                               unit:@" pt"
                                                                                zeroMeansDefault:YES],
                                                                            [DYYYSettingItem itemWithTitle:@"进度标签颜色" key:@"DYYYProgressLabelColor" type:DYYYSettingItemTypeTextField placeholder:@"十六进制"],
                                                                            [DYYYSettingItem itemWithTitle:@"隐藏视频进度" key:@"DYYYHideVideoProgress" type:DYYYSettingItemTypeSwitch],
@@ -248,7 +248,7 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                                step:100.0
                                                                                defaultValue:0.0
                                                                                decimals:0
-                                                                               unit:" 赞"
+                                                                               unit:@" 赞"
                                                                                zeroMeansDefault:NO],
                                                                            [DYYYSettingItem sliderItemWithTitle:@"推荐视频时限"
                                                                                key:@"DYYYFilterTimeLimit"
@@ -257,7 +257,7 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                                step:1.0
                                                                                defaultValue:0.0
                                                                                decimals:0
-                                                                               unit:" 天"
+                                                                               unit:@" 天"
                                                                                zeroMeansDefault:NO],
                                                                            [DYYYSettingItem itemWithTitle:@"推荐过滤HDR" key:@"DYYYFilterFeedHDR" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"启用首页净化" key:@"DYYYEnablePure" type:DYYYSettingItemTypeSwitch],
@@ -283,7 +283,7 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                                step:1.0
                                                                                defaultValue:12.0
                                                                                decimals:0
-                                                                               unit:" pt"
+                                                                               unit:@" pt"
                                                                                zeroMeansDefault:YES],
                                                                            [DYYYSettingItem itemWithTitle:@"时间属地显示" key:@"DYYYEnableArea" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"国外解析账号" key:@"DYYYGeonamesUsername" type:DYYYSettingItemTypeTextField placeholder:@"需填写才能解析国外"],
@@ -587,7 +587,7 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                                 step:2.0
                                                                                 defaultValue:32.0
                                                                                 decimals:0
-                                                                                unit:" pt"
+                                                                                unit:@" pt"
                                                                                 zeroMeansDefault:NO],
                                                                             [DYYYSettingItem itemWithTitle:@"启用一键清屏按钮" key:@"DYYYEnableFloatClearButton" type:DYYYSettingItemTypeSwitch],
                                                                             [DYYYSettingItem sliderItemWithTitle:@"快捷清屏按钮大小"
@@ -597,7 +597,7 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                                 step:2.0
                                                                                 defaultValue:40.0
                                                                                 decimals:0
-                                                                                unit:" pt"
+                                                                                unit:@" pt"
                                                                                 zeroMeansDefault:NO],
                                                                             [DYYYSettingItem itemWithTitle:@"清屏隐藏弹幕" key:@"DYYYHideDanmaku" type:DYYYSettingItemTypeSwitch],
                                                                             [DYYYSettingItem itemWithTitle:@"清屏移除时间进度" key:@"DYYYRemoveTimeProgress" type:DYYYSettingItemTypeSwitch],
