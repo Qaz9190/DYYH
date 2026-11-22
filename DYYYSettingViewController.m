@@ -936,14 +936,12 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
 @property(nonatomic, copy) NSArray<DYYYSettingTab *> *tabs;
 @property(nonatomic, assign) NSInteger currentTabIndex;
 @property(nonatomic, assign) BOOL isAgreementShown;
-@property(nonatomic, assign) BOOL didAnimateEntrance;
 
 - (void)setupBackground;
 - (void)setupHeaderBar;
 - (void)setupScrollContent;
 - (void)applyTab:(NSInteger)index animated:(BOOL)animated;
 - (void)rebuildRowsAnimated:(BOOL)animated;
-- (void)playEntranceAnimation;
 - (void)presentDetailViewController:(DYYYSettingDetailViewController *)detail;
 - (void)dismissDetailViewController:(DYYYSettingDetailViewController *)detail;
 - (void)closeTapped;
@@ -963,7 +961,6 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
     self.view.backgroundColor = [UIColor clearColor];
 
     self.isAgreementShown = NO;
-    self.didAnimateEntrance = NO;
     self.currentTabIndex = 0;
 
     [DYYYSettingStore prepareDefaultValues];
@@ -983,11 +980,8 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
 
-    if (!self.didAnimateEntrance) {
-        self.didAnimateEntrance = YES;
-        [self playEntranceAnimation];
-    }
-
+    // 注意：这里不要再做整屏淡入。面板弹出动画结束时内容已经可见，
+    // 若此时把 alpha 打到 0 再淡入，会出现「内容闪一下」的观感。
     if (!self.isAgreementShown) {
         [self checkFirstLaunch];
         self.isAgreementShown = YES;
@@ -1206,22 +1200,6 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
     }
 
     [self.view layoutIfNeeded];
-}
-
-- (void)playEntranceAnimation {
-    self.contentStack.alpha = 0.0;
-    self.contentStack.transform = CGAffineTransformMakeTranslation(0, 14);
-
-    [UIView animateWithDuration:0.5
-                          delay:0
-         usingSpringWithDamping:0.9
-          initialSpringVelocity:0.3
-                        options:UIViewAnimationOptionAllowUserInteraction
-                     animations:^{
-                       self.contentStack.alpha = 1.0;
-                       self.contentStack.transform = CGAffineTransformIdentity;
-                     }
-                     completion:nil];
 }
 
 #pragma mark - 交互

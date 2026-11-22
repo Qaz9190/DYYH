@@ -235,12 +235,17 @@
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        self.backgroundColor = [UIColor colorWithWhite:0.97 alpha:0.06];
+        // 底色略微抬高：面板被 present 的第一帧模糊还没采样到背景时，
+        // 不至于直接透出原画面造成「闪一下」。
+        self.backgroundColor = [UIColor colorWithWhite:0.97 alpha:0.14];
         self.userInteractionEnabled = NO;
 
         UIBlurEffect *effect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemUltraThinMaterialLight];
         _blurView = [[UIVisualEffectView alloc] initWithEffect:effect];
         _blurView.userInteractionEnabled = NO;
+        // 初始就铺满 + 自动伸缩，保证 layoutSubviews 之前不是空白帧
+        _blurView.frame = self.bounds;
+        _blurView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         [self addSubview:_blurView];
 
         _tintLayer = [CAGradientLayer layer];
@@ -252,6 +257,7 @@
         _tintLayer.locations = @[ @0.0, @0.52, @1.0 ];
         _tintLayer.startPoint = CGPointMake(0.5, 0.0);
         _tintLayer.endPoint = CGPointMake(0.5, 1.0);
+        _tintLayer.frame = self.bounds;
         [self.layer addSublayer:_tintLayer];
     }
     return self;
