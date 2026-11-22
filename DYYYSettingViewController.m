@@ -226,15 +226,39 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                            [DYYYSettingItem itemWithTitle:@"上下控制倍速" key:@"DYYYEnableLongPressSpeedGesture" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"显示进度时长" key:@"DYYYShowScheduleDisplay" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"进度时长样式" key:@"DYYYScheduleStyle" type:DYYYSettingItemTypeTextField placeholder:@"默认"],
-                                                                           [DYYYSettingItem itemWithTitle:@"进度纵轴位置" key:@"DYYYTimelineVerticalPosition" type:DYYYSettingItemTypeTextField placeholder:@"-12.5"],
+                                                                           [DYYYSettingItem sliderItemWithTitle:@"进度纵轴位置"
+                                                                               key:@"DYYYTimelineVerticalPosition"
+                                                                               min:-60.0
+                                                                               max:60.0
+                                                                               step:0.5
+                                                                               defaultValue:-12.5
+                                                                               decimals:1
+                                                                               unit:" pt"
+                                                                               zeroMeansDefault:YES],
                                                                            [DYYYSettingItem itemWithTitle:@"进度标签颜色" key:@"DYYYProgressLabelColor" type:DYYYSettingItemTypeTextField placeholder:@"十六进制"],
                                                                            [DYYYSettingItem itemWithTitle:@"隐藏视频进度" key:@"DYYYHideVideoProgress" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"启用自动播放" key:@"DYYYEnableAutoPlay" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"忽略投屏 VPN 检测" key:@"DYYYDisableCastVPNCheck" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"推荐过滤直播" key:@"DYYYSkipLive" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"推荐过滤热点" key:@"DYYYSkipHotSpot" type:DYYYSettingItemTypeSwitch],
-                                                                           [DYYYSettingItem itemWithTitle:@"推荐过滤低赞" key:@"DYYYFilterLowLikes" type:DYYYSettingItemTypeTextField placeholder:@"填0关闭"],
-                                                                           [DYYYSettingItem itemWithTitle:@"推荐视频时限" key:@"DYYYFilterTimeLimit" type:DYYYSettingItemTypeTextField placeholder:@"填0关闭，单位为天"],
+                                                                           [DYYYSettingItem sliderItemWithTitle:@"推荐过滤低赞"
+                                                                               key:@"DYYYFilterLowLikes"
+                                                                               min:0.0
+                                                                               max:20000.0
+                                                                               step:100.0
+                                                                               defaultValue:0.0
+                                                                               decimals:0
+                                                                               unit:" 赞"
+                                                                               zeroMeansDefault:NO],
+                                                                           [DYYYSettingItem sliderItemWithTitle:@"推荐视频时限"
+                                                                               key:@"DYYYFilterTimeLimit"
+                                                                               min:0.0
+                                                                               max:90.0
+                                                                               step:1.0
+                                                                               defaultValue:0.0
+                                                                               decimals:0
+                                                                               unit:" 天"
+                                                                               zeroMeansDefault:NO],
                                                                            [DYYYSettingItem itemWithTitle:@"推荐过滤HDR" key:@"DYYYFilterFeedHDR" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"启用首页净化" key:@"DYYYEnablePure" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"启用首页全屏" key:@"DYYYEnableFullScreen" type:DYYYSettingItemTypeSwitch],
@@ -243,8 +267,24 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                            [DYYYSettingItem itemWithTitle:@"去青少年弹窗" key:@"DYYYHideTeenMode" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"评论区毛玻璃" key:@"DYYYEnableCommentBlur" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"通知玻璃效果" key:@"DYYYEnableNotificationTransparency" type:DYYYSettingItemTypeSwitch],
-                                                                           [DYYYSettingItem itemWithTitle:@"毛玻璃透明度" key:@"DYYYCommentBlurTransparent" type:DYYYSettingItemTypeTextField placeholder:@"0-1小数"],
-                                                                           [DYYYSettingItem itemWithTitle:@"通知圆角半径" key:@"DYYYNotificationCornerRadius" type:DYYYSettingItemTypeTextField placeholder:@"默认12"],
+                                                                           [DYYYSettingItem sliderItemWithTitle:@"毛玻璃透明度"
+                                                                               key:@"DYYYCommentBlurTransparent"
+                                                                               min:0.05
+                                                                               max:1.0
+                                                                               step:0.01
+                                                                               defaultValue:0.9
+                                                                               decimals:2
+                                                                               unit:nil
+                                                                               zeroMeansDefault:NO],
+                                                                           [DYYYSettingItem sliderItemWithTitle:@"通知圆角半径"
+                                                                               key:@"DYYYNotificationCornerRadius"
+                                                                               min:0.0
+                                                                               max:50.0
+                                                                               step:1.0
+                                                                               defaultValue:12.0
+                                                                               decimals:0
+                                                                               unit:" pt"
+                                                                               zeroMeansDefault:YES],
                                                                            [DYYYSettingItem itemWithTitle:@"时间属地显示" key:@"DYYYEnableArea" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"国外解析账号" key:@"DYYYGeonamesUsername" type:DYYYSettingItemTypeTextField placeholder:@"需填写才能解析国外"],
                                                                            [DYYYSettingItem itemWithTitle:@"时间标签颜色" key:@"DYYYLabelColor" type:DYYYSettingItemTypeTextField placeholder:@"十六进制"],
@@ -478,7 +518,15 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                            [DYYYSettingItem itemWithTitle:@"长按面板玻璃效果" key:@"DYYYLongPressPanelBlur" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"长按面板深色模式" key:@"DYYYLongPressPanelDark" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"保存面板玻璃效果" key:@"DYYYEnableSheetBlur" type:DYYYSettingItemTypeSwitch],
-                                                                           [DYYYSettingItem itemWithTitle:@"面板毛玻璃透明度" key:@"DYYYSheetBlurTransparent" type:DYYYSettingItemTypeTextField placeholder:@"0-1小数"],
+                                                                           [DYYYSettingItem sliderItemWithTitle:@"面板毛玻璃透明度"
+                                                                               key:@"DYYYSheetBlurTransparent"
+                                                                               min:0.05
+                                                                               max:1.0
+                                                                               step:0.01
+                                                                               defaultValue:0.9
+                                                                               decimals:2
+                                                                               unit:nil
+                                                                               zeroMeansDefault:NO],
                                                                            [DYYYSettingItem itemWithTitle:@"长按面板保存视频" key:@"DYYYLongPressSaveVideo" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"长按面板保存封面" key:@"DYYYLongPressSaveCover" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"长按面板保存音频" key:@"DYYYLongPressSaveAudio" type:DYYYSettingItemTypeSwitch],
@@ -532,9 +580,25 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                             [DYYYSettingItem itemWithTitle:@"快捷倍速数值设置" key:@"DYYYSpeedSettings" type:DYYYSettingItemTypeTextField placeholder:@"逗号分隔"],
                                                                             [DYYYSettingItem itemWithTitle:@"自动恢复默认倍速" key:@"DYYYAutoRestoreSpeed" type:DYYYSettingItemTypeSwitch],
                                                                             [DYYYSettingItem itemWithTitle:@"倍速按钮显示后缀" key:@"DYYYSpeedButtonShowX" type:DYYYSettingItemTypeSwitch],
-                                                                            [DYYYSettingItem itemWithTitle:@"快捷倍速按钮大小" key:@"DYYYSpeedButtonSize" type:DYYYSettingItemTypeTextField placeholder:@"默认32"],
+                                                                            [DYYYSettingItem sliderItemWithTitle:@"快捷倍速按钮大小"
+                                                                                key:@"DYYYSpeedButtonSize"
+                                                                                min:24.0
+                                                                                max:96.0
+                                                                                step:2.0
+                                                                                defaultValue:32.0
+                                                                                decimals:0
+                                                                                unit:" pt"
+                                                                                zeroMeansDefault:NO],
                                                                             [DYYYSettingItem itemWithTitle:@"启用一键清屏按钮" key:@"DYYYEnableFloatClearButton" type:DYYYSettingItemTypeSwitch],
-                                                                            [DYYYSettingItem itemWithTitle:@"快捷清屏按钮大小" key:@"DYYYEnableFloatClearButtonSize" type:DYYYSettingItemTypeTextField placeholder:@"默认40"],
+                                                                            [DYYYSettingItem sliderItemWithTitle:@"快捷清屏按钮大小"
+                                                                                key:@"DYYYEnableFloatClearButtonSize"
+                                                                                min:24.0
+                                                                                max:96.0
+                                                                                step:2.0
+                                                                                defaultValue:40.0
+                                                                                decimals:0
+                                                                                unit:" pt"
+                                                                                zeroMeansDefault:NO],
                                                                             [DYYYSettingItem itemWithTitle:@"清屏隐藏弹幕" key:@"DYYYHideDanmaku" type:DYYYSettingItemTypeSwitch],
                                                                             [DYYYSettingItem itemWithTitle:@"清屏移除时间进度" key:@"DYYYRemoveTimeProgress" type:DYYYSettingItemTypeSwitch],
                                                                             [DYYYSettingItem itemWithTitle:@"清屏隐藏时间进度" key:@"DYYYHideTimeProgress" type:DYYYSettingItemTypeSwitch],
@@ -1393,7 +1457,7 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
 
     // 底部信息
     self.footerLabel = [[UILabel alloc] initWithFrame:CGRectZero];
-    self.footerLabel.text = [NSString stringWithFormat:@"Developer By @huamidev\nVersion: %@ (%@)", DYYY_VERSION, @"260104"];
+    self.footerLabel.text = [NSString stringWithFormat:@"Developer By @huamidev\nVersion: %@ (%@)", DYYY_VERSION, @"261122"];
     self.footerLabel.textAlignment = NSTextAlignmentCenter;
     self.footerLabel.numberOfLines = 2;
     self.footerLabel.font = [UIFont systemFontOfSize:11.5 weight:UIFontWeightRegular];
