@@ -18,7 +18,7 @@
 
 #pragma mark - 数据模型
 
-typedef NS_ENUM(NSInteger, DYYYSettingItemType) { DYYYSettingItemTypeSwitch, DYYYSettingItemTypeTextField, DYYYSettingItemTypePicker };
+typedef NS_ENUM(NSInteger, DYYYSettingItemType) { DYYYSettingItemTypeSwitch, DYYYSettingItemTypeTextField, DYYYSettingItemTypePicker, DYYYSettingItemTypeSlider };
 
 @interface DYYYSettingItem : NSObject
 
@@ -27,8 +27,35 @@ typedef NS_ENUM(NSInteger, DYYYSettingItemType) { DYYYSettingItemTypeSwitch, DYY
 @property(nonatomic, assign) DYYYSettingItemType type;
 @property(nonatomic, copy, nullable) NSString *placeholder;
 
+// 滑条专用：数值范围、步进、默认值与展示格式
+@property(nonatomic, assign) CGFloat minimumValue;
+@property(nonatomic, assign) CGFloat maximumValue;
+@property(nonatomic, assign) CGFloat stepValue;
+@property(nonatomic, assign) CGFloat defaultValue;
+@property(nonatomic, assign) NSInteger decimals;
+@property(nonatomic, copy, nullable) NSString *unit;
+/// 拖到 0 视为「恢复默认」（直接移除该键），用于底栏高度这类「不填即系统默认」的项
+@property(nonatomic, assign) BOOL zeroMeansDefault;
+
 + (instancetype)itemWithTitle:(NSString *)title key:(NSString *)key type:(DYYYSettingItemType)type;
 + (instancetype)itemWithTitle:(NSString *)title key:(NSString *)key type:(DYYYSettingItemType)type placeholder:(nullable NSString *)placeholder;
++ (instancetype)sliderItemWithTitle:(NSString *)title
+                                key:(NSString *)key
+                                min:(CGFloat)minimum
+                                max:(CGFloat)maximum
+                               step:(CGFloat)step
+                       defaultValue:(CGFloat)defaultValue
+                           decimals:(NSInteger)decimals
+                               unit:(nullable NSString *)unit;
++ (instancetype)sliderItemWithTitle:(NSString *)title
+                                key:(NSString *)key
+                                min:(CGFloat)minimum
+                                max:(CGFloat)maximum
+                               step:(CGFloat)step
+                       defaultValue:(CGFloat)defaultValue
+                           decimals:(NSInteger)decimals
+                               unit:(nullable NSString *)unit
+                    zeroMeansDefault:(BOOL)zeroMeansDefault;
 
 @end
 
@@ -45,6 +72,70 @@ typedef NS_ENUM(NSInteger, DYYYSettingItemType) { DYYYSettingItemTypeSwitch, DYY
     item.type = type;
     item.placeholder = placeholder;
     return item;
+}
+
++ (instancetype)sliderItemWithTitle:(NSString *)title
+                                key:(NSString *)key
+                                min:(CGFloat)minimum
+                                max:(CGFloat)maximum
+                               step:(CGFloat)step
+                       defaultValue:(CGFloat)defaultValue
+                           decimals:(NSInteger)decimals
+                               unit:(nullable NSString *)unit {
+    return [self sliderItemWithTitle:title
+                                 key:key
+                                 min:minimum
+                                 max:maximum
+                                step:step
+                        defaultValue:defaultValue
+                            decimals:decimals
+                                unit:unit
+                     zeroMeansDefault:NO];
+}
+
++ (instancetype)sliderItemWithTitle:(NSString *)title
+                                key:(NSString *)key
+                                min:(CGFloat)minimum
+                                max:(CGFloat)maximum
+                               step:(CGFloat)step
+                       defaultValue:(CGFloat)defaultValue
+                           decimals:(NSInteger)decimals
+                               unit:(nullable NSString *)unit
+                    zeroMeansDefault:(BOOL)zeroMeansDefault {
+    DYYYSettingItem *item = [[DYYYSettingItem alloc] init];
+    item.title = title;
+    item.key = key;
+    item.type = DYYYSettingItemTypeSlider;
+    item.minimumValue = minimum;
+    item.maximumValue = maximum;
+    item.stepValue = step;
+    item.defaultValue = defaultValue;
+    item.decimals = decimals;
+    item.unit = unit;
+    item.zeroMeansDefault = zeroMeansDefault;
+    return item;
+}
+
+/// 滑条的当前值（未设置时回落到默认值）
+- (CGFloat)currentSliderValue {
+    id stored = [[NSUserDefaults standardUserDefaults] objectForKey:self.key];
+    CGFloat value = self.defaultValue;
+    if (stored) {
+        NSString *text = [stored isKindOfClass:[NSString class]] ? stored : [stored description];
+        if (text.length > 0) {
+            value = text.floatValue;
+        }
+    }
+    return MAX(self.minimumValue, MIN(self.maximumValue, value));
+}
+
+/// 数值文案，例如 "0.85"、"12 pt"
+- (NSString *)sliderDisplayTextForValue:(CGFloat)value {
+    if (self.zeroMeansDefault && value <= 0.0) {
+        return @"默认";
+    }
+    NSString *number = [NSString stringWithFormat:@"%.*f", (int)self.decimals, value];
+    return self.unit.length > 0 ? [number stringByAppendingString:self.unit] : number;
 }
 
 @end
@@ -168,15 +259,79 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
 
       DYYYSettingSection *uiSection = [DYYYSettingSection sectionWithTitle:@"界面设置"
                                                                     items:@[
-                                                                        [DYYYSettingItem itemWithTitle:@"设置顶栏透明" key:@"DYYYTopBarTransparent" type:DYYYSettingItemTypeTextField placeholder:@"0-1小数"],
-                                                                        [DYYYSettingItem itemWithTitle:@"设置全局透明" key:@"DYYYGlobalTransparency" type:DYYYSettingItemTypeTextField placeholder:@"0-1小数"],
-                                                                        [DYYYSettingItem itemWithTitle:@"首页头像透明" key:@"DYYYAvatarViewTransparency" type:DYYYSettingItemTypeTextField placeholder:@"0-1小数"],
-                                                                        [DYYYSettingItem itemWithTitle:@"右侧栏缩放度" key:@"DYYYElementScale" type:DYYYSettingItemTypeTextField placeholder:@"不填默认"],
-                                                                        [DYYYSettingItem itemWithTitle:@"昵称文案缩放" key:@"DYYYNicknameScale" type:DYYYSettingItemTypeTextField placeholder:@"不填默认"],
-                                                                        [DYYYSettingItem itemWithTitle:@"昵称下移距离" key:@"DYYYNicknameVerticalOffset" type:DYYYSettingItemTypeTextField placeholder:@"不填默认"],
-                                                                        [DYYYSettingItem itemWithTitle:@"文案下移距离" key:@"DYYYDescriptionVerticalOffset" type:DYYYSettingItemTypeTextField placeholder:@"不填默认"],
-                                                                        [DYYYSettingItem itemWithTitle:@"属地上移距离" key:@"DYYYIPLabelVerticalOffset" type:DYYYSettingItemTypeTextField placeholder:@"不填默认"],
-                                                                        [DYYYSettingItem itemWithTitle:@"修改底栏高度" key:@"DYYYTabBarHeight" type:DYYYSettingItemTypeTextField placeholder:@"默认为空"],
+                                                                        [DYYYSettingItem sliderItemWithTitle:@"设置顶栏透明"
+                                                                                                        key:@"DYYYTopBarTransparent"
+                                                                                                        min:0.0
+                                                                                                        max:1.0
+                                                                                                       step:0.01
+                                                                                               defaultValue:1.0
+                                                                                                   decimals:2
+                                                                                                       unit:nil],
+                                                                        [DYYYSettingItem sliderItemWithTitle:@"设置全局透明"
+                                                                                                        key:@"DYYYGlobalTransparency"
+                                                                                                        min:0.1
+                                                                                                        max:1.0
+                                                                                                       step:0.01
+                                                                                               defaultValue:1.0
+                                                                                                   decimals:2
+                                                                                                       unit:nil],
+                                                                        [DYYYSettingItem sliderItemWithTitle:@"首页头像透明"
+                                                                                                        key:@"DYYYAvatarViewTransparency"
+                                                                                                        min:0.0
+                                                                                                        max:1.0
+                                                                                                       step:0.01
+                                                                                               defaultValue:1.0
+                                                                                                   decimals:2
+                                                                                                       unit:nil],
+                                                                        [DYYYSettingItem sliderItemWithTitle:@"右侧栏缩放度"
+                                                                                                        key:@"DYYYElementScale"
+                                                                                                        min:0.5
+                                                                                                        max:1.5
+                                                                                                       step:0.01
+                                                                                               defaultValue:1.0
+                                                                                                   decimals:2
+                                                                                                       unit:nil],
+                                                                        [DYYYSettingItem sliderItemWithTitle:@"昵称文案缩放"
+                                                                                                        key:@"DYYYNicknameScale"
+                                                                                                        min:0.5
+                                                                                                        max:1.5
+                                                                                                       step:0.01
+                                                                                               defaultValue:1.0
+                                                                                                   decimals:2
+                                                                                                       unit:nil],
+                                                                        [DYYYSettingItem sliderItemWithTitle:@"昵称下移距离"
+                                                                                                        key:@"DYYYNicknameVerticalOffset"
+                                                                                                        min:-60.0
+                                                                                                        max:60.0
+                                                                                                       step:1.0
+                                                                                               defaultValue:0.0
+                                                                                                   decimals:0
+                                                                                                       unit:@" pt"],
+                                                                        [DYYYSettingItem sliderItemWithTitle:@"文案下移距离"
+                                                                                                        key:@"DYYYDescriptionVerticalOffset"
+                                                                                                        min:-60.0
+                                                                                                        max:60.0
+                                                                                                       step:1.0
+                                                                                               defaultValue:0.0
+                                                                                                   decimals:0
+                                                                                                       unit:@" pt"],
+                                                                        [DYYYSettingItem sliderItemWithTitle:@"属地上移距离"
+                                                                                                        key:@"DYYYIPLabelVerticalOffset"
+                                                                                                        min:0.0
+                                                                                                        max:60.0
+                                                                                                       step:1.0
+                                                                                               defaultValue:3.0
+                                                                                                   decimals:0
+                                                                                                       unit:@" pt"],
+                                                                        [DYYYSettingItem sliderItemWithTitle:@"修改底栏高度"
+                                                                                                        key:@"DYYYTabBarHeight"
+                                                                                                        min:0.0
+                                                                                                        max:120.0
+                                                                                                       step:1.0
+                                                                                               defaultValue:0.0
+                                                                                                   decimals:0
+                                                                                                       unit:@" pt"
+                                                                                           zeroMeansDefault:YES],
                                                                         [DYYYSettingItem itemWithTitle:@"设置首页标题" key:@"DYYYIndexTitle" type:DYYYSettingItemTypeTextField placeholder:@"不填默认"],
                                                                         [DYYYSettingItem itemWithTitle:@"设置朋友标题" key:@"DYYYFriendsTitle" type:DYYYSettingItemTypeTextField placeholder:@"不填默认"],
                                                                         [DYYYSettingItem itemWithTitle:@"设置消息标题" key:@"DYYYMsgTitle" type:DYYYSettingItemTypeTextField placeholder:@"不填默认"],
@@ -452,6 +607,8 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
 @property(nonatomic, copy, nullable) void (^onSwitchChanged)(BOOL isOn);
 @property(nonatomic, copy, nullable) void (^onTextChanged)(NSString *text);
 @property(nonatomic, copy, nullable) void (^onTextBeginEditing)(void);
+/// 滑条拖动回调，参数为已对齐步进的数值
+@property(nonatomic, copy, nullable) void (^onSliderChanged)(CGFloat value);
 
 - (void)configureWithItem:(DYYYSettingItem *)item position:(DYYYSettingCellPosition)position;
 
@@ -466,9 +623,15 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
 @property(nonatomic, strong) UITextField *textField;
 @property(nonatomic, strong) UILabel *valueLabel;
 @property(nonatomic, strong) DYYYChevronTriangleView *valueChevron;
+@property(nonatomic, strong) UISlider *slider;
+@property(nonatomic, strong) UILabel *sliderValueLabel;
 @property(nonatomic, strong) NSLayoutConstraint *titleToSwitchConstraint;
 @property(nonatomic, strong) NSLayoutConstraint *titleToFieldConstraint;
 @property(nonatomic, strong) NSLayoutConstraint *titleToValueConstraint;
+@property(nonatomic, strong) NSLayoutConstraint *titleToSliderValueConstraint;
+@property(nonatomic, strong) NSLayoutConstraint *titleCenterYConstraint;
+@property(nonatomic, strong) NSLayoutConstraint *titleTopConstraint;
+@property(nonatomic, strong, nullable) DYYYSettingItem *currentItem;
 @property(nonatomic, copy, nullable) NSString *currentKey;
 
 @end
@@ -544,6 +707,24 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
         _valueChevron.hidden = YES;
         [self.contentView addSubview:_valueChevron];
 
+        // 滑条（仅数值项使用）：标题在上一行，滑条铺满下一行
+        _slider = [[UISlider alloc] initWithFrame:CGRectZero];
+        _slider.minimumTrackTintColor = [DYYYPanelTheme accent];
+        _slider.maximumTrackTintColor = [UIColor colorWithWhite:1.0 alpha:0.55];
+        _slider.translatesAutoresizingMaskIntoConstraints = NO;
+        _slider.hidden = YES;
+        [_slider addTarget:self action:@selector(sliderValueChanged:) forControlEvents:UIControlEventValueChanged];
+        [_slider addTarget:self action:@selector(sliderTouchEnded:) forControlEvents:UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel];
+        [self.contentView addSubview:_slider];
+
+        _sliderValueLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+        _sliderValueLabel.font = [UIFont monospacedDigitSystemFontOfSize:14.5 weight:UIFontWeightSemibold];
+        _sliderValueLabel.textColor = [DYYYPanelTheme textSecondary];
+        _sliderValueLabel.textAlignment = NSTextAlignmentRight;
+        _sliderValueLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        _sliderValueLabel.hidden = YES;
+        [self.contentView addSubview:_sliderValueLabel];
+
         [NSLayoutConstraint activateConstraints:@[
             [_cardView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
             [_cardView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
@@ -551,7 +732,6 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
             [_cardView.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor],
 
             [_titleLabel.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:18.0],
-            [_titleLabel.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
 
             [_switchView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-16.0],
             [_switchView.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
@@ -569,11 +749,24 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
             [_valueLabel.trailingAnchor constraintEqualToAnchor:_valueChevron.leadingAnchor constant:-8.0],
             [_valueLabel.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor],
 
+            [_sliderValueLabel.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-18.0],
+            [_sliderValueLabel.centerYAnchor constraintEqualToAnchor:_titleLabel.centerYAnchor],
+
+            [_slider.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:18.0],
+            [_slider.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-18.0],
+            [_slider.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-10.0],
+            [_slider.heightAnchor constraintEqualToConstant:28.0],
+
             [_separatorView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:18.0],
             [_separatorView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
             [_separatorView.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor],
             [_separatorView.heightAnchor constraintEqualToConstant:0.5],
         ]];
+
+        // 标题垂直位置：普通行居中，滑条行靠上
+        _titleCenterYConstraint = [_titleLabel.centerYAnchor constraintEqualToAnchor:self.contentView.centerYAnchor];
+        _titleTopConstraint = [_titleLabel.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:13.0];
+        _titleCenterYConstraint.active = YES;
 
         [_titleLabel setContentCompressionResistancePriority:UILayoutPriorityDefaultLow forAxis:UILayoutConstraintAxisHorizontal];
 
@@ -581,6 +774,7 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
         _titleToSwitchConstraint = [_titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_switchView.leadingAnchor constant:-10.0];
         _titleToFieldConstraint = [_titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_textField.leadingAnchor constant:-10.0];
         _titleToValueConstraint = [_titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_valueLabel.leadingAnchor constant:-10.0];
+        _titleToSliderValueConstraint = [_titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:_sliderValueLabel.leadingAnchor constant:-10.0];
     }
     return self;
 }
@@ -590,12 +784,15 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
     self.onSwitchChanged = nil;
     self.onTextChanged = nil;
     self.onTextBeginEditing = nil;
+    self.onSliderChanged = nil;
+    self.currentItem = nil;
     [self.textField resignFirstResponder];
     self.textField.text = nil;
 }
 
 - (void)configureWithItem:(DYYYSettingItem *)item position:(DYYYSettingCellPosition)position {
     self.currentKey = item.key;
+    self.currentItem = item;
     self.titleLabel.text = item.title;
 
     CGFloat radius = 18.0;
@@ -621,8 +818,12 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
     self.textField.hidden = YES;
     self.valueLabel.hidden = YES;
     self.valueChevron.hidden = YES;
+    self.slider.hidden = YES;
+    self.sliderValueLabel.hidden = YES;
 
-    [NSLayoutConstraint deactivateConstraints:@[ self.titleToSwitchConstraint, self.titleToFieldConstraint, self.titleToValueConstraint ]];
+    [NSLayoutConstraint deactivateConstraints:@[ self.titleToSwitchConstraint, self.titleToFieldConstraint, self.titleToValueConstraint, self.titleToSliderValueConstraint ]];
+    self.titleCenterYConstraint.active = YES;
+    self.titleTopConstraint.active = NO;
 
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 
@@ -646,7 +847,60 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
         self.titleToValueConstraint.active = YES;
         id currentValue = [DYYYSettingStore currentValueForKey:item.key];
         self.valueLabel.text = [DYYYSettingStore displayValueForKey:item.key value:currentValue];
+    } else if (item.type == DYYYSettingItemTypeSlider) {
+        self.slider.hidden = NO;
+        self.sliderValueLabel.hidden = NO;
+        self.titleToSliderValueConstraint.active = YES;
+        self.titleCenterYConstraint.active = NO;
+        self.titleTopConstraint.active = YES;
+
+        self.slider.minimumValue = item.minimumValue;
+        self.slider.maximumValue = item.maximumValue;
+        CGFloat value = [item currentSliderValue];
+        self.slider.value = value;
+        [self updateSliderAppearanceForValue:value];
     }
+}
+
+#pragma mark - 滑条
+
+- (void)updateSliderAppearanceForValue:(CGFloat)value {
+    DYYYSettingItem *item = self.currentItem;
+    if (!item) {
+        return;
+    }
+    self.sliderValueLabel.text = [item sliderDisplayTextForValue:value];
+    // 非默认值时用主色强调，便于一眼看出被改过
+    BOOL isDefault = fabs(value - item.defaultValue) < (item.stepValue / 2.0 + 0.0001);
+    self.sliderValueLabel.textColor = isDefault ? [DYYYPanelTheme textSecondary] : [DYYYPanelTheme accent];
+}
+
+- (void)sliderValueChanged:(UISlider *)sender {
+    DYYYSettingItem *item = self.currentItem;
+    if (!item) {
+        return;
+    }
+
+    CGFloat value = sender.value;
+    if (item.stepValue > 0.0) {
+        value = round(value / item.stepValue) * item.stepValue;
+        value = MAX(item.minimumValue, MIN(item.maximumValue, value));
+        // 吸附到步进：拖到两档之间时把滑块拉回最近的档位
+        if (fabs(sender.value - value) > 0.0001) {
+            sender.value = value;
+        }
+    }
+
+    [self updateSliderAppearanceForValue:value];
+
+    if (self.onSliderChanged) {
+        self.onSliderChanged(value);
+    }
+}
+
+- (void)sliderTouchEnded:(UISlider *)sender {
+    UISelectionFeedbackGenerator *feedback = [[UISelectionFeedbackGenerator alloc] init];
+    [feedback selectionChanged];
 }
 
 - (void)setHighlighted:(BOOL)highlighted animated:(BOOL)animated {
@@ -896,12 +1150,27 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
     cell.onTextChanged = ^(NSString *text) {
       [[NSUserDefaults standardUserDefaults] setObject:text forKey:item.key];
     };
+    cell.onSliderChanged = ^(CGFloat value) {
+      NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+      if (item.zeroMeansDefault && value <= 0.0) {
+          // 归零视为「恢复系统默认」，直接清键，保持与旧版「不填」一致的语义
+          [defaults removeObjectForKey:item.key];
+          return;
+      }
+      // hook 侧统一按字符串解析（NSScanner / floatValue），必须存字符串
+      [defaults setObject:[NSString stringWithFormat:@"%.*f", (int)item.decimals, value] forKey:item.key];
+    };
     __weak typeof(self) weakSelf = self;
     cell.onTextBeginEditing = ^{
       weakSelf.activeIndexPath = indexPath;
     };
 
     return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    DYYYSettingItem *item = self.items[indexPath.row];
+    return item.type == DYYYSettingItemTypeSlider ? 84.0 : 58.0;
 }
 
 #pragma mark - UITableViewDelegate
