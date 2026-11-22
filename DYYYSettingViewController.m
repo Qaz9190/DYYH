@@ -1063,7 +1063,7 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
     self.contentStack.axis = UILayoutConstraintAxisVertical;
     self.contentStack.alignment = UIStackViewAlignmentFill;
     self.contentStack.spacing = 16.0;
-    self.contentStack.isLayoutMarginsRelativeArrangement = YES;
+    self.contentStack.layoutMarginsRelativeArrangement = YES;
     self.contentStack.layoutMargins = UIEdgeInsetsMake(6, 16, 44, 16);
     self.contentStack.translatesAutoresizingMaskIntoConstraints = NO;
     [self.scrollView addSubview:self.contentStack];
