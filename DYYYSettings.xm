@@ -14,7 +14,6 @@
 #import "DYYYOptionsSelectionView.h"
 
 #import "DYYYConstants.h"
-#import "DYYYColoredComment.h"
 #import "DYYYLuckyBag.h"
 #import "DYYYSettingsHelper.h"
 #import "DYYYUtils.h"
@@ -292,52 +291,12 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
               @"detail" : @"",
               @"cellType" : @37,
               @"imageName" : @"ic_dansquarenut_outlined_20"
-          },
-          @{
-              @"identifier" : kDYYYColoredCommentAutoKey,
-              @"title" : @"彩色评论装饰",
-              @"subTitle" : @"发送评论时自动加彩色 emoji 装饰",
-              @"detail" : @"",
-              @"cellType" : @6,
-              @"imageName" : @"ic_dansquarenut_outlined_20"
-          },
-          @{
-              @"identifier" : kDYYYColoredCommentStyleKey,
-              @"title" : @"彩色评论样式",
-              @"subTitle" : @"圆点 / 色带 / 包边 / 角标",
-              @"detail" : @"",
-              @"cellType" : @26,
-              @"imageName" : @"ic_dansquarenut_outlined_20"
           }
       ];
 
       for (NSDictionary *dict in appearanceSettings) {
           AWESettingItemModel *item = [DYYYSettingsHelper createSettingItem:dict cellTapHandlers:cellTapHandlers];
           [appearanceItems addObject:item];
-      }
-
-      // 彩色评论：装饰示例 + 样式切换
-      for (AWESettingItemModel *item in appearanceItems) {
-          if ([item.identifier isEqualToString:kDYYYColoredCommentAutoKey]) {
-              NSString *sample = [DYYYColoredComment decorateText:@"今天天气不错" style:[DYYYColoredComment currentStyle]];
-              item.subTitle = [NSString stringWithFormat:@"示例：%@", sample];
-              continue;
-          }
-          if (![item.identifier isEqualToString:kDYYYColoredCommentStyleKey]) {
-              continue;
-          }
-          NSString *savedStyle = [[NSUserDefaults standardUserDefaults] objectForKey:kDYYYColoredCommentStyleKey];
-          item.detail = [DYYYColoredComment styleNameForStyle:[DYYYColoredComment styleForName:savedStyle]];
-          item.cellTappedBlock = ^{
-            [DYYYOptionsSelectionView showWithPreferenceKey:kDYYYColoredCommentStyleKey
-                                               optionsArray:[DYYYColoredComment styleNames]
-                                                 headerText:@"选择彩色评论样式"
-                                             onPresentingVC:topView()
-                                           selectionChanged:^(NSString *selectedValue) {
-                                             item.detail = selectedValue;
-                                             [item refreshCell];
-                                           }];
-          };
       }
 
       // 【视频播放设置】分类

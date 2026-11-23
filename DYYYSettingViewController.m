@@ -11,7 +11,6 @@
 
 #import "DYYYSettingViewController.h"
 #import "DYYYAboutDialogView.h"
-#import "DYYYColoredComment.h"
 #import "DYYYConstants.h"
 #import "DYYYGlassComponents.h"
 #import "DYYYKeywordListView.h"
@@ -257,8 +256,6 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                            [DYYYSettingItem itemWithTitle:@"视频背景颜色" key:@"DYYYVideoBGColor" type:DYYYSettingItemTypeTextField placeholder:@"十六进制"],
                                                                            [DYYYSettingItem itemWithTitle:@"启用弹幕改色" key:@"DYYYEnableDanmuColor" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"自定弹幕颜色" key:@"DYYYDanmuColor" type:DYYYSettingItemTypeTextField placeholder:@"十六进制"],
-                                                                           [DYYYSettingItem itemWithTitle:@"彩色评论装饰" key:kDYYYColoredCommentAutoKey type:DYYYSettingItemTypeSwitch],
-                                                                           [DYYYSettingItem itemWithTitle:@"彩色评论样式" key:kDYYYColoredCommentStyleKey type:DYYYSettingItemTypePicker],
                                                                            [DYYYSettingItem itemWithTitle:@"设置默认倍速" key:@"DYYYDefaultSpeed" type:DYYYSettingItemTypePicker],
                                                                            [DYYYSettingItem itemWithTitle:@"设置长按倍速" key:@"DYYYLongPressSpeed" type:DYYYSettingItemTypePicker],
                                                                            [DYYYSettingItem itemWithTitle:@"上下控制倍速" key:@"DYYYEnableLongPressSpeedGesture" type:DYYYSettingItemTypeSwitch],
@@ -722,9 +719,6 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
     } else if ([key isEqualToString:@"DYYYLiveQuality"]) {
         // 直播清晰度选项
         return @[ @"蓝光帧彩", @"蓝光", @"超清", @"高清", @"标清", @"自动" ];
-    } else if ([key isEqualToString:kDYYYColoredCommentStyleKey]) {
-        // 彩色评论装饰样式
-        return [DYYYColoredComment styleNames];
     }
     return @[];
 }
@@ -736,10 +730,6 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
     } else if ([key isEqualToString:@"DYYYLiveQuality"]) {
         // 直播清晰度直接显示
         return value ? [NSString stringWithFormat:@"%@", value] : @"自动";
-    } else if ([key isEqualToString:kDYYYColoredCommentStyleKey]) {
-        // 兼容中文样式名与数字两种存法
-        NSString *text = [value isKindOfClass:[NSString class]] ? (NSString *)value : nil;
-        return [DYYYColoredComment styleNameForStyle:[DYYYColoredComment styleForName:text]];
     }
     return value ? [NSString stringWithFormat:@"%@", value] : @"";
 }
