@@ -14,6 +14,8 @@
 #import "DYYYOptionsSelectionView.h"
 
 #import "DYYYConstants.h"
+#import "DYYYColoredComment.h"
+#import "DYYYLuckyBag.h"
 #import "DYYYSettingsHelper.h"
 #import "DYYYUtils.h"
 
@@ -290,12 +292,52 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
               @"detail" : @"",
               @"cellType" : @37,
               @"imageName" : @"ic_dansquarenut_outlined_20"
+          },
+          @{
+              @"identifier" : kDYYYColoredCommentAutoKey,
+              @"title" : @"彩色评论装饰",
+              @"subTitle" : @"发送评论时自动加彩色 emoji 装饰",
+              @"detail" : @"",
+              @"cellType" : @6,
+              @"imageName" : @"ic_dansquarenut_outlined_20"
+          },
+          @{
+              @"identifier" : kDYYYColoredCommentStyleKey,
+              @"title" : @"彩色评论样式",
+              @"subTitle" : @"圆点 / 色带 / 包边 / 角标",
+              @"detail" : @"",
+              @"cellType" : @26,
+              @"imageName" : @"ic_dansquarenut_outlined_20"
           }
       ];
 
       for (NSDictionary *dict in appearanceSettings) {
           AWESettingItemModel *item = [DYYYSettingsHelper createSettingItem:dict cellTapHandlers:cellTapHandlers];
           [appearanceItems addObject:item];
+      }
+
+      // 彩色评论：装饰示例 + 样式切换
+      for (AWESettingItemModel *item in appearanceItems) {
+          if ([item.identifier isEqualToString:kDYYYColoredCommentAutoKey]) {
+              NSString *sample = [DYYYColoredComment decorateText:@"今天天气不错" style:[DYYYColoredComment currentStyle]];
+              item.subTitle = [NSString stringWithFormat:@"示例：%@", sample];
+              continue;
+          }
+          if (![item.identifier isEqualToString:kDYYYColoredCommentStyleKey]) {
+              continue;
+          }
+          NSString *savedStyle = [[NSUserDefaults standardUserDefaults] objectForKey:kDYYYColoredCommentStyleKey];
+          item.detail = [DYYYColoredComment styleNameForStyle:[DYYYColoredComment styleForName:savedStyle]];
+          item.cellTappedBlock = ^{
+            [DYYYOptionsSelectionView showWithPreferenceKey:kDYYYColoredCommentStyleKey
+                                               optionsArray:[DYYYColoredComment styleNames]
+                                                 headerText:@"选择彩色评论样式"
+                                             onPresentingVC:topView()
+                                           selectionChanged:^(NSString *selectedValue) {
+                                             item.detail = selectedValue;
+                                             [item refreshCell];
+                                           }];
+          };
       }
 
       // 【视频播放设置】分类
@@ -3619,6 +3661,89 @@ speedSettingsItem.detail = trimmedText;
                                 onConfirm:nil];
     };
     [aboutItems addObject:licenseItem];
+    // 抢福袋（独立一级入口，不塞进基本设置）
+    AWESettingItemModel *luckyBagSettingItem = [[%c(AWESettingItemModel) alloc] init];
+    luckyBagSettingItem.identifier = @"DYYYLuckyBagSettings";
+    luckyBagSettingItem.title = @"抢福袋";
+    luckyBagSettingItem.type = 0;
+    luckyBagSettingItem.svgIconImageName = @"ic_dansquarenut_outlined_20";
+    luckyBagSettingItem.cellType = 26;
+    luckyBagSettingItem.colorStyle = 0;
+    luckyBagSettingItem.isEnable = YES;
+    luckyBagSettingItem.cellTappedBlock = ^{
+      NSMutableDictionary *cellTapHandlers = [NSMutableDictionary dictionary];
+      NSMutableArray<AWESettingItemModel *> *luckyBagItems = [NSMutableArray array];
+
+      NSArray *luckyBagSettings = @[
+          @{@"identifier" : kDYYYLBEnabledKey,
+            @"title" : @"启用自动抢福袋",
+            @"subTitle" : @"福袋一出现就自动打开抢福袋面板",
+            @"detail" : @"",
+            @"cellType" : @6,
+            @"imageName" : @"ic_dansquarenut_outlined_20"},
+          @{@"identifier" : kDYYYLBAllowDiamondKey,
+            @"title" : @"需要钻石时参与",
+            @"subTitle" : @"关闭后只抢免费福袋",
+            @"detail" : @"",
+            @"cellType" : @6,
+            @"imageName" : @"ic_dansquarenut_outlined_20"},
+          @{@"identifier" : kDYYYLBMaxDiamondKey,
+            @"title" : @"钻石花费上限",
+            @"subTitle" : @"需要超过这个数量的福袋直接跳过",
+            @"detail" : @"钻",
+            @"cellType" : @20,
+            @"imageName" : @"ic_dansquarenut_outlined_20"},
+          @{@"identifier" : kDYYYLBHostsKey,
+            @"title" : @"监控主播",
+            @"subTitle" : @"留空 = 所有直播间都抢",
+            @"detail" : @"",
+            @"cellType" : @26,
+            @"imageName" : @"ic_dansquarenut_outlined_20"}
+      ];
+
+      for (NSDictionary *dict in luckyBagSettings) {
+          AWESettingItemModel *item = [DYYYSettingsHelper createSettingItem:dict cellTapHandlers:cellTapHandlers];
+          [luckyBagItems addObject:item];
+      }
+
+      for (AWESettingItemModel *item in luckyBagItems) {
+          if (![item.identifier isEqualToString:kDYYYLBHostsKey]) {
+              continue;
+          }
+          item.detail = [DYYYLuckyBag hostsSummary];
+          item.cellTappedBlock = ^{
+            DYYYKeywordListView *listView = [[DYYYKeywordListView alloc] initWithTitle:@"监控主播"
+                                                                              keywords:[DYYYLuckyBag hostTokens]];
+            listView.inputPlaceholder = @"昵称|抖音号，或只填抖音号";
+            listView.addItemTitle = @"添加主播";
+            listView.editItemTitle = @"编辑主播";
+            listView.onConfirm = ^(NSArray *tokens) {
+              [DYYYLuckyBag setHostTokens:tokens];
+              item.detail = [DYYYLuckyBag hostsSummary];
+              [item refreshCell];
+            };
+            [listView show];
+          };
+      }
+
+      AWESettingItemModel *lbStatusItem = [[%c(AWESettingItemModel) alloc] init];
+      lbStatusItem.identifier = @"DYYYLBStatus";
+      lbStatusItem.title = @"最近记录";
+      lbStatusItem.subTitle = [DYYYLuckyBag lastResult];
+      lbStatusItem.type = 0;
+      lbStatusItem.cellType = 0;
+      lbStatusItem.isEnable = NO;
+      [luckyBagItems addObject:lbStatusItem];
+
+      NSMutableArray *lbSections = [NSMutableArray array];
+      [lbSections addObject:[DYYYSettingsHelper createSectionWithTitle:@"抢福袋"
+                                                                  footerTitle:@"需要在直播间内才会生效；中奖后自动填写地址暂未实现。"
+                                                                      items:luckyBagItems]];
+      AWESettingBaseViewController *lbVC = [DYYYSettingsHelper createSubSettingsViewController:@"抢福袋" sections:lbSections];
+      [rootVC.navigationController pushViewController:(UIViewController *)lbVC animated:YES];
+    };
+    [mainItems addObject:luckyBagSettingItem];
+
     mainSection.itemArray = mainItems;
     aboutSection.itemArray = aboutItems;
 

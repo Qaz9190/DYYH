@@ -11,14 +11,17 @@
 
 #import "DYYYSettingViewController.h"
 #import "DYYYAboutDialogView.h"
+#import "DYYYColoredComment.h"
 #import "DYYYConstants.h"
 #import "DYYYGlassComponents.h"
+#import "DYYYKeywordListView.h"
+#import "DYYYLuckyBag.h"
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
 #pragma mark - 数据模型
 
-typedef NS_ENUM(NSInteger, DYYYSettingItemType) { DYYYSettingItemTypeSwitch, DYYYSettingItemTypeTextField, DYYYSettingItemTypePicker, DYYYSettingItemTypeSlider };
+typedef NS_ENUM(NSInteger, DYYYSettingItemType) { DYYYSettingItemTypeSwitch, DYYYSettingItemTypeTextField, DYYYSettingItemTypePicker, DYYYSettingItemTypeSlider, DYYYSettingItemTypeAction, DYYYSettingItemTypeInfo };
 
 @interface DYYYSettingItem : NSObject
 
@@ -36,6 +39,11 @@ typedef NS_ENUM(NSInteger, DYYYSettingItemType) { DYYYSettingItemTypeSwitch, DYY
 @property(nonatomic, copy, nullable) NSString *unit;
 /// 拖到 0 视为「恢复默认」（直接移除该键），用于底栏高度这类「不填即系统默认」的项
 @property(nonatomic, assign) BOOL zeroMeansDefault;
+/// 动作行（右侧显示 value，点击执行 onTap）
+@property(nonatomic, copy, nullable) NSString * (^valueProvider)(void);
+@property(nonatomic, copy, nullable) void (^onTap)(void (^reloadRow)(void));
+/// 只读信息行：每次渲染时动态取文案
+@property(nonatomic, copy, nullable) NSString * (^infoProvider)(void);
 
 + (instancetype)itemWithTitle:(NSString *)title key:(NSString *)key type:(DYYYSettingItemType)type;
 + (instancetype)itemWithTitle:(NSString *)title key:(NSString *)key type:(DYYYSettingItemType)type placeholder:(nullable NSString *)placeholder;
@@ -56,6 +64,13 @@ typedef NS_ENUM(NSInteger, DYYYSettingItemType) { DYYYSettingItemTypeSwitch, DYY
                            decimals:(NSInteger)decimals
                                unit:(nullable NSString *)unit
                     zeroMeansDefault:(BOOL)zeroMeansDefault;
+
+/// 动作行：右侧显示 valueProvider 的返回值，点击执行 onTap
++ (instancetype)actionItemWithTitle:(NSString *)title
+                      valueProvider:(nullable NSString * (^)(void))valueProvider
+                              onTap:(nullable void (^)(void (^reloadRow)(void)))onTap;
+/// 只读信息行
++ (instancetype)infoItemWithTitle:(NSString *)title provider:(nullable NSString * (^)(void))provider;
 
 @end
 
@@ -136,6 +151,27 @@ typedef NS_ENUM(NSInteger, DYYYSettingItemType) { DYYYSettingItemTypeSwitch, DYY
     }
     NSString *number = [NSString stringWithFormat:@"%.*f", (int)self.decimals, value];
     return self.unit.length > 0 ? [number stringByAppendingString:self.unit] : number;
+}
+
++ (instancetype)actionItemWithTitle:(NSString *)title
+                      valueProvider:(NSString * (^)(void))valueProvider
+                              onTap:(void (^)(void (^reloadRow)(void)))onTap {
+    DYYYSettingItem *item = [[DYYYSettingItem alloc] init];
+    item.title = title;
+    item.key = @"";
+    item.type = DYYYSettingItemTypeAction;
+    item.valueProvider = valueProvider;
+    item.onTap = onTap;
+    return item;
+}
+
++ (instancetype)infoItemWithTitle:(NSString *)title provider:(NSString * (^)(void))provider {
+    DYYYSettingItem *item = [[DYYYSettingItem alloc] init];
+    item.title = title;
+    item.key = @"";
+    item.type = DYYYSettingItemTypeInfo;
+    item.infoProvider = provider;
+    return item;
 }
 
 @end
@@ -221,6 +257,8 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                            [DYYYSettingItem itemWithTitle:@"视频背景颜色" key:@"DYYYVideoBGColor" type:DYYYSettingItemTypeTextField placeholder:@"十六进制"],
                                                                            [DYYYSettingItem itemWithTitle:@"启用弹幕改色" key:@"DYYYEnableDanmuColor" type:DYYYSettingItemTypeSwitch],
                                                                            [DYYYSettingItem itemWithTitle:@"自定弹幕颜色" key:@"DYYYDanmuColor" type:DYYYSettingItemTypeTextField placeholder:@"十六进制"],
+                                                                           [DYYYSettingItem itemWithTitle:@"彩色评论装饰" key:kDYYYColoredCommentAutoKey type:DYYYSettingItemTypeSwitch],
+                                                                           [DYYYSettingItem itemWithTitle:@"彩色评论样式" key:kDYYYColoredCommentStyleKey type:DYYYSettingItemTypePicker],
                                                                            [DYYYSettingItem itemWithTitle:@"设置默认倍速" key:@"DYYYDefaultSpeed" type:DYYYSettingItemTypePicker],
                                                                            [DYYYSettingItem itemWithTitle:@"设置长按倍速" key:@"DYYYLongPressSpeed" type:DYYYSettingItemTypePicker],
                                                                            [DYYYSettingItem itemWithTitle:@"上下控制倍速" key:@"DYYYEnableLongPressSpeedGesture" type:DYYYSettingItemTypeSwitch],
@@ -607,9 +645,70 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
                                                                             [DYYYSettingItem itemWithTitle:@"清屏隐藏倍速" key:@"DYYYHideSpeed" type:DYYYSettingItemTypeSwitch],
                                                                         ]];
 
+      // 抢福袋（独立分组，不塞进基本设置）
+      DYYYSettingSection *luckyBagSection = [DYYYSettingSection sectionWithTitle:@"参与设置"
+                                                                          items:@[
+                                                                              [DYYYSettingItem itemWithTitle:@"启用自动抢福袋"
+                                                                                                         key:kDYYYLBEnabledKey
+                                                                                                        type:DYYYSettingItemTypeSwitch],
+                                                                              [DYYYSettingItem itemWithTitle:@"需要钻石时参与"
+                                                                                                         key:kDYYYLBAllowDiamondKey
+                                                                                                        type:DYYYSettingItemTypeSwitch],
+                                                                              [DYYYSettingItem sliderItemWithTitle:@"钻石花费上限"
+                                                                                                               key:kDYYYLBMaxDiamondKey
+                                                                                                               min:0.0
+                                                                                                               max:200.0
+                                                                                                              step:1.0
+                                                                                                      defaultValue:0.0
+                                                                                                          decimals:0
+                                                                                                              unit:@" 钻"],
+                                                                              [DYYYSettingItem infoItemWithTitle:@"参与说明"
+                                                                                                        provider:^NSString *{
+                                                                                                          return @"福袋一出现就自动打开抢福袋面板；需要钻石且超过上限的会跳过。\n中奖后自动填写收货地址暂未实现。";
+                                                                                                        }],
+                                                                          ]];
+
+      DYYYSettingSection *luckyBagHostSection =
+          [DYYYSettingSection sectionWithTitle:@"监控主播"
+                                        items:@[
+                                            [DYYYSettingItem actionItemWithTitle:@"主播白名单"
+                                                                   valueProvider:^NSString *{
+                                                                     return [DYYYLuckyBag hostsSummary];
+                                                                   }
+                                                                           onTap:^(void (^reloadRow)(void)) {
+                                                                             DYYYKeywordListView *listView =
+                                                                                 [[DYYYKeywordListView alloc] initWithTitle:@"监控主播"
+                                                                                                                   keywords:[DYYYLuckyBag hostTokens]];
+                                                                             listView.inputPlaceholder = @"昵称|抖音号，或只填抖音号";
+                                                                             listView.addItemTitle = @"添加主播";
+                                                                             listView.editItemTitle = @"编辑主播";
+                                                                             listView.onConfirm = ^(NSArray *tokens) {
+                                                                               [DYYYLuckyBag setHostTokens:tokens];
+                                                                               if (reloadRow) {
+                                                                                   reloadRow();
+                                                                               }
+                                                                             };
+                                                                             [listView show];
+                                                                           }],
+                                            [DYYYSettingItem infoItemWithTitle:@"说明"
+                                                                      provider:^NSString *{
+                                                                        return @"留空 = 所有直播间都抢；填了就只抢这些主播的福袋。";
+                                                                      }],
+                                        ]];
+
+      DYYYSettingSection *luckyBagStatusSection =
+          [DYYYSettingSection sectionWithTitle:@"状态"
+                                        items:@[
+                                            [DYYYSettingItem infoItemWithTitle:@"最近记录"
+                                                                      provider:^NSString *{
+                                                                        return [DYYYLuckyBag lastResult];
+                                                                      }],
+                                        ]];
+
       gDYYYSettingTabs = @[
           [DYYYSettingTab tabWithTitle:@"抖音优化" sections:@[ basicSection, uiSection, hideSection, removeSection ]],
           [DYYYSettingTab tabWithTitle:@"扩展功能" sections:@[ panelHideSection, panelSection, funcSection, floatSection ]],
+          [DYYYSettingTab tabWithTitle:@"抢福袋" sections:@[ luckyBagSection, luckyBagHostSection, luckyBagStatusSection ]],
       ];
     });
 
@@ -623,6 +722,9 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
     } else if ([key isEqualToString:@"DYYYLiveQuality"]) {
         // 直播清晰度选项
         return @[ @"蓝光帧彩", @"蓝光", @"超清", @"高清", @"标清", @"自动" ];
+    } else if ([key isEqualToString:kDYYYColoredCommentStyleKey]) {
+        // 彩色评论装饰样式
+        return [DYYYColoredComment styleNames];
     }
     return @[];
 }
@@ -634,6 +736,10 @@ static NSArray<DYYYSettingTab *> *gDYYYSettingTabs = nil;
     } else if ([key isEqualToString:@"DYYYLiveQuality"]) {
         // 直播清晰度直接显示
         return value ? [NSString stringWithFormat:@"%@", value] : @"自动";
+    } else if ([key isEqualToString:kDYYYColoredCommentStyleKey]) {
+        // 兼容中文样式名与数字两种存法
+        NSString *text = [value isKindOfClass:[NSString class]] ? (NSString *)value : nil;
+        return [DYYYColoredComment styleNameForStyle:[DYYYColoredComment styleForName:text]];
     }
     return value ? [NSString stringWithFormat:@"%@", value] : @"";
 }
@@ -689,6 +795,7 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
 @property(nonatomic, strong) DYYYChevronTriangleView *valueChevron;
 @property(nonatomic, strong) UISlider *slider;
 @property(nonatomic, strong) UILabel *sliderValueLabel;
+@property(nonatomic, strong) UILabel *infoLabel;
 @property(nonatomic, strong) NSLayoutConstraint *titleToSwitchConstraint;
 @property(nonatomic, strong) NSLayoutConstraint *titleToFieldConstraint;
 @property(nonatomic, strong) NSLayoutConstraint *titleToValueConstraint;
@@ -789,6 +896,15 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
         _sliderValueLabel.hidden = YES;
         [self.contentView addSubview:_sliderValueLabel];
 
+        // 只读信息行：标题下面跟一段灰色说明/结果
+        _infoLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+        _infoLabel.font = [UIFont systemFontOfSize:12.5 weight:UIFontWeightRegular];
+        _infoLabel.textColor = [DYYYPanelTheme textSecondary];
+        _infoLabel.numberOfLines = 2;
+        _infoLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        _infoLabel.hidden = YES;
+        [self.contentView addSubview:_infoLabel];
+
         [NSLayoutConstraint activateConstraints:@[
             [_cardView.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor],
             [_cardView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor],
@@ -815,6 +931,10 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
 
             [_sliderValueLabel.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-18.0],
             [_sliderValueLabel.centerYAnchor constraintEqualToAnchor:_titleLabel.centerYAnchor],
+
+            [_infoLabel.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:18.0],
+            [_infoLabel.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-18.0],
+            [_infoLabel.topAnchor constraintEqualToAnchor:_titleLabel.bottomAnchor constant:4.0],
 
             [_slider.leadingAnchor constraintEqualToAnchor:self.contentView.leadingAnchor constant:18.0],
             [_slider.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-18.0],
@@ -884,6 +1004,7 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
     self.valueChevron.hidden = YES;
     self.slider.hidden = YES;
     self.sliderValueLabel.hidden = YES;
+    self.infoLabel.hidden = YES;
 
     [NSLayoutConstraint deactivateConstraints:@[ self.titleToSwitchConstraint, self.titleToFieldConstraint, self.titleToValueConstraint, self.titleToSliderValueConstraint ]];
     self.titleCenterYConstraint.active = YES;
@@ -905,12 +1026,27 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
                                                                                    NSForegroundColorAttributeName : [DYYYPanelTheme textTertiary],
                                                                                    NSFontAttributeName : [UIFont systemFontOfSize:14.0 weight:UIFontWeightRegular],
                                                                                }];
-    } else if (item.type == DYYYSettingItemTypePicker) {
+    } else if (item.type == DYYYSettingItemTypePicker || item.type == DYYYSettingItemTypeAction) {
         self.valueLabel.hidden = NO;
         self.valueChevron.hidden = NO;
         self.titleToValueConstraint.active = YES;
-        id currentValue = [DYYYSettingStore currentValueForKey:item.key];
-        self.valueLabel.text = [DYYYSettingStore displayValueForKey:item.key value:currentValue];
+        if (item.type == DYYYSettingItemTypeAction) {
+            self.valueLabel.text = item.valueProvider ? item.valueProvider() : @"";
+        } else {
+            id currentValue = [DYYYSettingStore currentValueForKey:item.key];
+            self.valueLabel.text = [DYYYSettingStore displayValueForKey:item.key value:currentValue];
+        }
+    } else if (item.type == DYYYSettingItemTypeInfo) {
+        self.infoLabel.hidden = NO;
+        self.titleCenterYConstraint.active = NO;
+        self.titleTopConstraint.active = YES;
+
+        NSString *text = item.infoProvider ? item.infoProvider() : nil;
+        if (text.length == 0 && item.key.length > 0) {
+            id stored = [defaults objectForKey:item.key];
+            text = [stored isKindOfClass:[NSString class]] ? (NSString *)stored : nil;
+        }
+        self.infoLabel.text = text.length > 0 ? text : (item.placeholder ?: @"");
     } else if (item.type == DYYYSettingItemTypeSlider) {
         self.slider.hidden = NO;
         self.sliderValueLabel.hidden = NO;
@@ -1234,7 +1370,7 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     DYYYSettingItem *item = self.items[indexPath.row];
-    return item.type == DYYYSettingItemTypeSlider ? 84.0 : 58.0;
+    return (item.type == DYYYSettingItemTypeSlider || item.type == DYYYSettingItemTypeInfo) ? 84.0 : 58.0;
 }
 
 #pragma mark - UITableViewDelegate
@@ -1245,6 +1381,15 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
     DYYYSettingItem *item = self.items[indexPath.row];
     if (item.type == DYYYSettingItemTypePicker) {
         [self showOptionsForItem:item indexPath:indexPath];
+    } else if (item.type == DYYYSettingItemTypeAction && item.onTap) {
+        __weak typeof(self) weakSelf = self;
+        item.onTap(^{
+          __strong typeof(weakSelf) strongSelf = weakSelf;
+          if (!strongSelf) {
+              return;
+          }
+          [strongSelf.tableView reloadRowsAtIndexPaths:@[ indexPath ] withRowAnimation:UITableViewRowAnimationNone];
+        });
     }
 }
 
@@ -1457,7 +1602,7 @@ typedef NS_ENUM(NSInteger, DYYYSettingCellPosition) {
 
     // 底部信息
     self.footerLabel = [[UILabel alloc] initWithFrame:CGRectZero];
-    self.footerLabel.text = [NSString stringWithFormat:@"Developer By @huamidev\nVersion: %@ (%@)", DYYY_VERSION, @"261122"];
+    self.footerLabel.text = [NSString stringWithFormat:@"Developer By @huamidev\nVersion: %@ (%@)", DYYY_VERSION, @"261123"];
     self.footerLabel.textAlignment = NSTextAlignmentCenter;
     self.footerLabel.numberOfLines = 2;
     self.footerLabel.font = [UIFont systemFontOfSize:11.5 weight:UIFontWeightRegular];
